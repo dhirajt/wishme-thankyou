@@ -116,7 +116,7 @@ def reply_post(post_list):
 
 
 if __name__ == "__main__":
-    #ACCESS_TOKEN=getaccesstoken()
+    ACCESS_TOKEN = getaccesstoken()
     post_data_list = collect_data()
     reply_post(post_data_list)
 
