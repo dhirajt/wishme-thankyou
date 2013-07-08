@@ -59,7 +59,7 @@ def collect_data():
     bday = datetime.datetime.strptime(bday, '%m/%d/%Y')
 
     t = raw_input("\nEnter the time of the first post on your wall\n"
-                  "(like 11:55, default is 11:45,enter d for default):")
+                  "(like 11:55, default is 11:45,enter d for default): ")
     t = "11:45" if t == 'd' else t
     t = t.split(':')
 
@@ -67,31 +67,33 @@ def collect_data():
                         hour=int(t[0]),
                         minute=int(t[1]))-datetime.timedelta(days=1)
 
-    fq = urllib.quote("SELECT post_id, actor_id, message,created_time "
-                      "FROM stream WHERE source_id=me() AND filter_key="
-                      "'others' LIMIT %s" % LIMIT)
-
-    dataf = urllib2.urlopen(ACCESS_URL + "fql?q="+fq +
-                            "&format=json&access_token="+ACCESS_TOKEN)
-    post_data = json.loads(dataf.read())
-    dataf.close()
-
     wish_timestamp = time.mktime(wish.timetuple())
-    post_data['data'] = [x for x in post_data['data']
-                         if x['created_time'] > wish_timestamp]
+    
+    query = {'actors': ('SELECT actor_id,post_id,message FROM '
+                        'stream WHERE source_id=me() AND created_time > '
+                        '%s LIMIT %s') % (int(wish_timestamp),LIMIT), 
+             'names': ('SELECT first_name FROM user WHERE '
+                       'uid IN (SELECT actor_id FROM #actors)')}
+    
+    urlstring = { 'access_token':ACCESS_TOKEN,
+                  'q':query }
+    fullurl = "https://graph.facebook.com/fql"+'?'+urllib.urlencode(urlstring)
+    res = urllib2.urlopen(fullurl)
+    result = json.loads(res.read())
+    res.close()
 
-    dataf = urllib2.urlopen(ACCESS_URL+'me/feed?access_token='+ACCESS_TOKEN)
-    post_from = json.loads(dataf.read())
-    dataf.close()
+    post_list = result['data'][0]['fql_result_set']
+    name_list = result['data'][1]['fql_result_set']
+    size = len(name_list)
+    
+    print ("\n%s friends posted on your timeline for your birthday!"
+           " :)") % size
+           
+    post_data = [ {'post_id':post_list[i]['post_id'],
+                   'from':name_list[i]['first_name']
+                  } for i in xrange(size) ]
 
-    post_from['data'] = [x for x in
-                         post_from['data'][:len(post_data['data'])+1]]
-    from_dict = {x['id']: x['from']['name'] for x in post_from['data']}
-
-    for i in post_data['data']:
-        i['from'] = from_dict[i['post_id']]
-
-    return post_data['data']
+    return post_data
 
 
 def reply_post(post_list):
@@ -105,14 +107,21 @@ def reply_post(post_list):
               "relative_url": str(item['post_id'] +
                                   "/comments?message=" +
                                   reply.replace('[name]',
-                                                item['from'].split()[0]))}
+                                                item['from']))}
              for item in post_list]
 
     post_data = urllib.urlencode({'access_token': ACCESS_TOKEN,
                                   'batch': repr(batch)})
-    print post_data
+
     dataf = urllib2.urlopen(ACCESS_URL, post_data)
-    print json.loads(dataf.read())
+    response_list = json.loads(dataf.read())
+    dataf.close()
+    
+    count = 0
+    for i in response_list:
+        if i['code'] == 200:
+            count+=1
+    print "\n Successfully replied to %s posts :)" % count
 
 
 if __name__ == "__main__":
