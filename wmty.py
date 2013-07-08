@@ -1,3 +1,7 @@
+"""
+Script to thank friends on their posts for your birthday.
+"""
+
 import sys
 import urllib
 import urllib2
@@ -13,6 +17,12 @@ USERNAME = ''
 
 
 def getaccesstoken():
+    """
+    getaccesstoken()->ACCESS_TOKEN
+    Presents user with the choice of creating a token or supplying
+    one to the script which it uses later to fetch wall posts and
+    comment on them.
+    """
     print ("The script needs your ACCESS TOKEN.\n"
            "What would you like to do?\n"
            "1. Generate a new TOKEN.\n"
@@ -45,6 +55,13 @@ def getaccesstoken():
 
 
 def collect_data():
+    """
+    collect_data()->post_data
+    Collects user's birthday and gets all the wall posts on his wall
+    from previous day and constructs a list of dictionaries containing
+    post_id and name of the poster and returns the list as post_data.
+    """
+    # get user's birthday
     try:
         datafile = urllib2.urlopen(ACCESS_URL +
                                    'me?fields=birthday&access_token=' +
@@ -67,42 +84,59 @@ def collect_data():
                         hour=int(t[0]),
                         minute=int(t[1]))-datetime.timedelta(days=1)
 
+    # create a unix timestamp from first post's time
     wish_timestamp = time.mktime(wish.timetuple())
-    
+
+    # multiquery to select actor_id, post_id, message and first_name of the
+    # poster
     query = {'actors': ('SELECT actor_id,post_id,message FROM '
                         'stream WHERE source_id=me() AND created_time > '
-                        '%s LIMIT %s') % (int(wish_timestamp),LIMIT), 
+                        '%s LIMIT %s') % (int(wish_timestamp), LIMIT),
              'names': ('SELECT first_name FROM user WHERE '
                        'uid IN (SELECT actor_id FROM #actors)')}
-    
-    urlstring = { 'access_token':ACCESS_TOKEN,
-                  'q':query }
+
+    urlstring = {'access_token': ACCESS_TOKEN,
+                 'q': query}
+
     fullurl = "https://graph.facebook.com/fql"+'?'+urllib.urlencode(urlstring)
+
+    # GET request since there's no data dictionary as second parameter
     res = urllib2.urlopen(fullurl)
     result = json.loads(res.read())
     res.close()
 
+    # create a post_list and name_list because we need only post_id and name
+    # to reply
     post_list = result['data'][0]['fql_result_set']
     name_list = result['data'][1]['fql_result_set']
     size = len(name_list)
-    
+
     print ("\n%s friends posted on your timeline for your birthday!"
            " :)") % size
-           
-    post_data = [ {'post_id':post_list[i]['post_id'],
-                   'from':name_list[i]['first_name']
-                  } for i in xrange(size) ]
+
+    # pack name and post_id into a dict and send it in a list
+    post_data = [{'post_id': post_list[i]['post_id'],
+                  'from': name_list[i]['first_name']
+                  } for i in xrange(size)]
 
     return post_data
 
 
 def reply_post(post_list):
+    """
+    reply_post(post_data)
+    Creates a batch request of all the replies and sends it
+    to the server the batch requests contain the post_id
+    and the reply.
+    """
     print ("\n\nHow would you like to reply?\nDefault reply is "
            "'Thank you [name] :)'\nWhen making your own reply "
            "use [name] to insert the name of the friend.\n")
     reply = raw_input("Enter your reply (enter d for default) : ")
     reply = 'Thank you [name] :)' if reply == 'd' else reply
 
+    # creates a single batch request instead of HTTP requests for
+    # each post
     batch = [{"method": "POST",
               "relative_url": str(item['post_id'] +
                                   "/comments?message=" +
@@ -113,14 +147,15 @@ def reply_post(post_list):
     post_data = urllib.urlencode({'access_token': ACCESS_TOKEN,
                                   'batch': repr(batch)})
 
+    # POST request since post_data is supplied as second parameter
     dataf = urllib2.urlopen(ACCESS_URL, post_data)
     response_list = json.loads(dataf.read())
     dataf.close()
-    
+
     count = 0
     for i in response_list:
-        if i['code'] == 200:
-            count+=1
+        if i['code'] == 200:    # 200 is 'OK' response
+            count += 1
     print "\n Successfully replied to %s posts :)" % count
 
 
