@@ -27,18 +27,24 @@ def getaccesstoken():
            "What would you like to do?\n"
            "1. Generate a new TOKEN.\n"
            "2. Supply one (if you know how to generate it).\n")
+    
+    choice = 0 
+    while choice not in range(1,3):
+      try:
+        choice = int(raw_input("Choice (1 or 2) ? :"))
+      except ValueError, e:
+        continue
 
-    choice = raw_input("Choice (1 or 2) ? :")
-    if int(choice) == 2:
+    if choice == 2:
         access_token = raw_input("\nEnter the TOKEN string: ")
     else:
-        print ("To generate your token the script needs access to your feeds"
-               "and publishing\npermissions. Don't worry the script doesn't "
-               "store anything or spam your wall!\nGo to the links which will"
-               "open in your browser shortly and give the permissions\nto read"
-               " your data, once you give that permission another link will "
-               "open which \nhas your token, the token is a long string and "
-               "looks something like this\nCAACEdEose0.......cBABKNtliuHS7.\n"
+        print ("\nTo generate your token the script needs access to your feeds"
+               " and publishing\npermissions. Don't worry the script doesn't"
+               " store anything or spam your wall!\nGo to the links which will"
+               " open in your browser shortly and give the permissions to read"
+               " your data, once you give that permission another link will"
+               " open which has your token, the token is a long string and"
+               " looks something like this\nCAACEdEose0.......cBABKNtliuHS7.\n"
                "Copy it and paste it below.")
     time.sleep(25)
     print "\nOpening links now..."
