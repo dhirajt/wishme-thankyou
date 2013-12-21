@@ -1,5 +1,9 @@
 """
 Script to thank friends on their posts for your birthday.
+========================================================
+
+Works with python 2.6 and python 2.7
+
 """
 
 import sys
@@ -10,7 +14,7 @@ import datetime
 import json
 import webbrowser
 
-LIMIT = 300     # Change if greater than 300 friends have wished! :P
+LIMIT = 300     # Change if more than 300 friends have wished! :P
 ACCESS_TOKEN = ''
 ACCESS_URL = "https://graph.facebook.com/"
 USERNAME = ''
@@ -32,7 +36,7 @@ def getaccesstoken():
     while choice not in range(1,3):
       try:
         choice = int(raw_input("Choice (1 or 2) ? :"))
-      except ValueError, e:
+      except ValueError as e:
         continue
 
     if choice == 2:
